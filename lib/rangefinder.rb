@@ -4,12 +4,10 @@ require 'rangefinder/memo'
 require 'ranges_merger'
 
 class Rangefinder
-  PRECISION = 1e3
-  MAX = 1e7 # or you could use 4294967295-1
-  STARVE = 1e5
-  CHUNK = 1e4
-  SAMP = 0.01
-  ITER = 3
+  MAX = 2**32 - 1
+  MAX_GAP = 1e5
+  INIT_SAMP = 0.01
+  MAX_SAMP = 0.1
 
   def probe(options = {}, &blk)
     ranges, _, _ = probe_with_hits_and_misses(options, &blk)
@@ -17,52 +15,44 @@ class Rangefinder
 
   def probe_with_hits_and_misses(options = {}, &blk)
     memo = Memo.new
-    options.fetch(:iter, ITER).times do
-      _probe(memo, options, &blk)
-    end
+    _probe(memo, options, &blk)
     [ ::RangesMerger.merge(memo.ranges), memo.hits, memo.misses ]
-    # [ memo.ranges, memo.hits, memo.misses ]
   end
 
   private
 
   def _probe(memo, options = {}, &blk)
-    a = options.fetch(:a, 0)
-    b = options.fetch(:b, MAX)
-    samp = options.fetch(:samp, SAMP)
-    # raise "samp #{samp} > 0.1" if samp > 0.1
-    chunk = options.fetch(:chunk, CHUNK)
-    starve = options.fetch(:starve, STARVE)
-    ever_good = false
-    if chunk <= PRECISION
-      found_range = ([(a-chunk).round, 0].max)..([(b+chunk).round, MAX].min)
-      memo.ranges << found_range
+    first = [options.fetch(:first, 0), 0].max.round
+    last = [options.fetch(:last, MAX), MAX].min.round
+    max_gap = options.fetch(:max_gap, MAX_GAP)
+    samp = options.fetch(:samp, INIT_SAMP)
+    if samp >= MAX_SAMP
+      memo.ranges << (first..last)
     else
+      min_range = (10 ** (2 - Math.log(samp, 10))).round
+      anything = false
       first_good = nil
-      i = a
-      last_good = a
-      while i < b and (!ever_good or (last_good - i).abs < starve)
-        # puts "while #{i} < #{b} and (#{first_good.inspect}.nil? or #{(i - last_good).abs} < #{starve})"
-        if first_good and (last_good - i).abs > chunk
-          # _probe memo, {a: first_good, b: last_good, samp: samp*10, chunk: chunk/10}, &blk
-          _probe memo, {a: first_good, b: last_good, samp: samp*10, chunk: chunk/10}, &blk
-          first_good = nil
-          last_good = i
-        end
-        if memo.ranges.any? { |range| range.include?(i) }
-          ever_good = true
-          first_good ||= i
-          last_good = i
-        elsif blk.call(i)
+      i = first
+      last_good = first
+      begin
+        if blk.call(i)
           memo.hit!
-          ever_good = true
+          anything = true
           first_good ||= i
           last_good = i
         else
           memo.miss!
         end
-        i = (i + rand(100) * (1 - samp)).to_i
-      end
+        gap = i - last_good
+        if first_good and gap > min_range
+          _probe memo, {first: first_good-min_range, last: last_good+min_range, samp: samp*3}, &blk
+          first_good = nil
+          last_good = i
+          gap = 0
+        end
+        samp1 = gap > Math::E ? samp * Math.log(gap) : samp
+        i += (rand(100) * (1 - samp1)).round
+      end until i >= last or (gap > max_gap and anything) # sorry for mixed metaphor
     end
   end
 end

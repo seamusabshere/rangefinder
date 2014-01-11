@@ -4,16 +4,6 @@ Helps you find ranges of IDs, like when you're scraping a website and you need t
 
 You tell it what a valid ID is and it looks for ranges of consecutive valid IDs. It assumes that each probe is expensive.
 
-## Goal
-
-1. Detect at least 95% of valid IDs in 1000-long ranges with up to 90% sparsity
-1. Tolerate gaps of 100,000
-1. Probe no more than 5% of the range (maybe too aggressive)
-
-Maybe
-
-1. Don't overestimate valid ranges more than 5% (maybe too aggressive)
-
 ## Installation
 
 Add this line to your application's Gemfile:
@@ -51,9 +41,26 @@ Now you can scrape them one by one:
       end
     end
 
-## Note
+### Please do cache
 
 It's nice when your probe block makes a call that is cached somehow. That way when you go back and use the ranges, you're not hitting all those URLs over again.
+
+##$ Goals
+
+By default
+
+1. Detect at least 90% of valid IDs in 1000-long ranges with up to 90% intra-range sparsity
+1. Tolerate gaps of 100,000
+1. Probe no more than 5% of the range
+
+Maybe
+
+1. Don't overestimate valid ranges more than X
+
+### Wishlist
+
+1. Accept a known ID as the basis for smarter probing
+1. Internally, calculate density and use that to choose `min_range` and `samp`
 
 ## Contributing
 

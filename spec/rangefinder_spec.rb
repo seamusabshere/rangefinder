@@ -20,17 +20,13 @@ describe Rangefinder do
   end
   expected_id_count = expected_ranges.map(&:count).inject(:+)
 
-  options = {}
+  cache = {}
 
-  (0..0.9).step(0.3).each do |sparsity|
+  (0..0.9).step(0.1).each do |sparsity|
     describe "sparsity=#{'%g' % sparsity}" do
-      cache = {}
-      found_ranges, hits, misses = Rangefinder.new.probe_with_hits_and_misses(options) do |i|
-        if cache.has_key?(i)
-          cache[i]
-        else
-          cache[i] = (rand > sparsity) && expected_ranges.any? { |r| r.include?(i) }
-        end
+      found_ranges, hits, misses = Rangefinder.new.probe_with_hits_and_misses do |i|
+        r = (cache[i] ||= rand)
+        (r > sparsity) && expected_ranges.any? { |r| r.include?(i) }
       end
 
       # $stderr.puts
@@ -64,10 +60,10 @@ describe Rangefinder do
         expect(((hits+misses).to_f / highest_id).round(2)).to be <= 0.05
       end
 
-      # it "exaggerates no more than 5%" do
-      #   found_ids = found_ranges.map(&:to_a).flatten.uniq
-      #   expect((found_ids.count.to_f / expected_id_count).round(2)).to be <= 1.05
-      # end
+      it "exaggerates no more than 5%" do
+        found_ids = found_ranges.map(&:to_a).flatten.uniq
+        expect((found_ids.count.to_f / expected_id_count).round(2)).to be <= 1.05
+      end
     end
   end
 
