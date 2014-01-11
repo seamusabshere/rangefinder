@@ -45,7 +45,7 @@ Now you can scrape them one by one:
 
 It's nice when your probe block makes a call that is cached somehow. That way when you go back and use the ranges, you're not hitting all those URLs over again.
 
-##$ Goals
+### Goals
 
 By default
 
