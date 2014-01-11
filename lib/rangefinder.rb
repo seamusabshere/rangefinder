@@ -11,6 +11,7 @@ class Rangefinder
 
   def probe(options = {}, &blk)
     ranges, _, _ = probe_with_hits_and_misses(options, &blk)
+    ranges
   end
 
   def probe_with_hits_and_misses(options = {}, &blk)
