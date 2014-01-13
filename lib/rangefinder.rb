@@ -27,6 +27,7 @@ class Rangefinder
     last = [options.fetch(:last, MAX), MAX].min.round
     max_gap = options.fetch(:max_gap, MAX_GAP)
     samp = options.fetch(:samp, INIT_SAMP)
+    random = options.fetch(:random, ::Random.new)
     if samp >= MAX_SAMP
       memo.ranges << (first..last)
     else
@@ -52,7 +53,7 @@ class Rangefinder
           gap = 0
         end
         samp1 = gap > 10 ? samp * Math.log(gap, 10) : samp
-        i += (rand(100) * (1 - samp1)).round
+        i += (random.rand(100) * (1 - samp1)).round
       end until i >= last or (gap > max_gap and anything) # sorry for mixed metaphor
     end
   end
