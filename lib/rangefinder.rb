@@ -51,7 +51,7 @@ class Rangefinder
           last_good = i
           gap = 0
         end
-        samp1 = gap > Math::E ? samp * Math.log(gap) : samp
+        samp1 = gap > 10 ? samp * Math.log(gap, 10) : samp
         i += (rand(100) * (1 - samp1)).round
       end until i >= last or (gap > max_gap and anything) # sorry for mixed metaphor
     end
